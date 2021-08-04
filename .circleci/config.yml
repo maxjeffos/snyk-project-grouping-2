@@ -1,0 +1,52 @@
+
+version: 2.1
+
+orbs:
+  snyk: snyk/snyk@1.0.2
+
+jobs:
+  build:
+    docker:
+      - image: circleci/node:lts
+    working_directory: ~/repo
+    steps:
+      - checkout
+      - run:
+          name: Install Snyk CLI
+          command: |
+            curl -Lo ./snyk https://static.snyk.io/cli/latest/snyk-linux
+            chmod a+x ./snyk
+      # - run:
+      #     name: Test with Snyk
+      #     command: |
+      #       ./snyk test --all-projects
+      # - run:
+      #     name: Snyk Monitor
+      #     command: |
+      #       ./snyk monitor --all-projects
+
+      - snyk/scan:
+          severity-threshold: high
+          fail-on-issues: false
+          additional-arguments: --all-projects --json-file-output=snyk-out.json
+          monitor-on-build: false
+
+      - snyk/scan:
+          command: monitor
+          additional-arguments: --all-projects
+
+      - run:
+          name: See output
+          command: |
+            ls -la
+            cat snyk-out.json
+          
+      # - snyk/scan:
+      #     command: monitor
+      #     additional-arguments: --all-projects
+  
+workflows:
+  version: 2
+  build_and_test:
+    jobs:
+      - build
